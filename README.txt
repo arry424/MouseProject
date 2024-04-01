@@ -5,6 +5,9 @@ that computer. Right now, this is just a proof of concept to have something
 for our presentation in May, but if it works well enough we may continue to
 refine it.
 
+The code for this project is in Java only, since that's the main language I am
+comfortable in.
+
 There are two folders, MouseBluetooth and MouseNonBluetooth which each have
 their own code in them
 
