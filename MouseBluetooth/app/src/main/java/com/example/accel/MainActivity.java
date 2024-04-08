@@ -1,10 +1,13 @@
 package com.example.accel;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -16,6 +19,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
@@ -23,6 +27,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -34,8 +40,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener {
-
+@RequiresApi(api = Build.VERSION_CODES.S)
+public class MainActivity extends AppCompatActivity implements SensorEventListener, ActivityCompat.OnRequestPermissionsResultCallback {
 
     BluetoothManager bluetoothManager;
     BluetoothAdapter bluetoothAdapter;
@@ -44,6 +50,30 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private SensorManager sensorManager;
     private Sensor accelerometerSensor;
     private float last_x, last_y;
+
+    int REQUEST_ENABLE_BLUETOOTH = 1;
+    int REQUEST_ALL_PERMISSIONS_STORAGE = 2;
+    int REQUEST_ALL_PERMISSIONS_LOCATION = 3;
+
+    private final static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_LOCATION_EXTRA_COMMANDS,
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.BLUETOOTH_PRIVILEGED
+    };
+    private final static String[] PERMISSIONS_LOCATION = {
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_LOCATION_EXTRA_COMMANDS,
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.BLUETOOTH_PRIVILEGED
+    };
+
 
     // BroadcastReceiver to handle Bluetooth device discovery
     private final BroadcastReceiver discoveryReceiver = new BroadcastReceiver() {
@@ -54,12 +84,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             String action = intent.getAction();
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                if (device != null) {
+                if (device != null && !(device.getName() == null))  {
                     discoveredDevices.add(device);
+                    Log.d("INFO", "onReceive: Has Added a new Device!");
+                    Log.d("INFO", "onReceive: Device name:" + device.getName());
                 }
-            } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+            }
+            if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                Log.d("DEBUG", "onReceive: Just Connected to device: " + device.getName() + "!");
+            }
+            if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                Log.d("DEBUG", "onReceive: Just Disconnected from device: " + device.getName() + "!");
+            }
+            if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+                Log.d("DEBUG", "onReceive: Discovery Process Has Finished.");
                 showDeviceSelectionDialog(discoveredDevices);
-                unregisterReceiver(this); // Unregister receiver after discovery is finished
             }
         }
     };
@@ -67,68 +108,117 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d("DEBUG", "Starting Mouse Application!");
         setContentView(R.layout.activity_main); // Replace "activity_main" with your layout file name
-        bluetoothManager = getSystemService(BluetoothManager.class);
-     //   bluetoothAdapter = bluetoothManager.getAdapter();
-        bluetoothAdapter = bluetoothAdapter.getDefaultAdapter();
-        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        boolean isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        if (!isGpsEnabled) {
-            startActivityForResult(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS), 1);
-        }
 
+        // Check Permissions
+        checkPermissions();
 
-        if (bluetoothAdapter == null) {
-            System.out.println("the bluetooth adapter is null");
+        boolean bluetoothAvailable = getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH);
+        BluetoothManager bluetoothManager = getSystemService(BluetoothManager.class);
+        bluetoothAdapter = bluetoothManager.getAdapter();
+
+        if (bluetoothAvailable) {
+            Log.d("INFO", "Bluetooth is Available");
+        } else {
+            Log.e("ERROR", "Bluetooth is Not Available");
             return; // Device doesn't support Bluetooth
         }
-        System.out.println("the bluetooth adapter is " + bluetoothAdapter);
+
+        if (bluetoothAdapter == null) {
+            Log.e("ERROR", "The Bluetooth Adapter is Null");
+            return; // Device doesn't support Bluetooth
+        }
+        Log.d("DEBUG", "The Bluetooth Adapter is " + bluetoothAdapter);
 
         // Request to enable Bluetooth if it's not already enabled
         if (!bluetoothAdapter.isEnabled()) {
+            Log.d("DEBUG", "the bluetooth adapter is not enabled.");
+            Log.d("DEBUG", "Requesting Bluetooth Permissions.");
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-
-            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                System.out.println("Breaks at the check self permission thing on line 75");
-                return;
-            }
-            startActivityForResult(enableBtIntent, 1);
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BLUETOOTH);
+        } else {
+            // Start Bluetooth discovery process
+            startBluetoothDiscovery();
+            Log.d("BLUETOOTH", "Bluetooth is Already Turned On");
         }
 
-        // Start Bluetooth discovery process
-        startBluetoothDiscovery();
-
+        // TODO: Work on Sensor Manager, DO NOT DELETE
         // Initialize sensor manager and accelerometer sensor
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        accelerometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
+//        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+//        if (sensorManager != null) {
+//            accelerometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+//            sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
+//            // Setup UI and button listeners for mouse control
+//            setupMouseControlButtons();
+//        }
+    }
 
-        // Setup UI and button listeners for mouse control
-        setupMouseControlButtons();
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_ENABLE_BLUETOOTH) {
+            if (resultCode == Activity.RESULT_OK) {
+                // Do Bluetooth Tasks
+                Log.d("DEBUG", "User Accepted Request: The bluetooth adapter is enabled!");
+                startBluetoothDiscovery();
+                return;
+            }
+            if (resultCode == Activity.RESULT_CANCELED) {
+                Log.d("DEBUG", "User Declined Request: The bluetooth adapter remains disabled.");
+                return;
+            }
+        }
+        if (requestCode == REQUEST_ALL_PERMISSIONS_LOCATION) {
+            if (resultCode == Activity.RESULT_OK) {
+                // Do Bluetooth Tasks
+                Log.d("DEBUG", "User Accepted Request: REQUEST_ALL_PERMISSIONS_LOCATION");
+                startBluetoothDiscovery();
+                return;
+            }
+            if (resultCode == Activity.RESULT_CANCELED) {
+                Log.d("DEBUG", "User Declined Request: REQUEST_ALL_PERMISSIONS_LOCATION");
+                return;
+            }
+        }
+        if (requestCode == REQUEST_ALL_PERMISSIONS_LOCATION) {
+            if (resultCode == Activity.RESULT_OK) {
+                // Do Bluetooth Tasks
+                Log.d("DEBUG", "User Accepted Request: REQUEST_ALL_PERMISSIONS_LOCATION");
+                startBluetoothDiscovery();
+                return;
+            }
+            if (resultCode == Activity.RESULT_CANCELED) {
+                Log.d("DEBUG", "User Declined Request: REQUEST_ALL_PERMISSIONS_LOCATION");
+                return;
+            }
+        }
+        // Add More Request Handlers Here
     }
 
     // Starts the Bluetooth discovery process and registers the discovery receiver
     private void startBluetoothDiscovery() {
+        Log.d("DEBUG", "startBluetoothDiscovery: Attempting to Start Discovery");
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        // Actions we want to register for
         filter.addAction(BluetoothDevice.ACTION_NAME_CHANGED);
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
         registerReceiver(discoveryReceiver, filter);
-
-
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        boolean check = bluetoothAdapter.startDiscovery();
-        System.out.println("The 'start discovery' is returning " + check);
+        boolean hasStartedDiscovery = bluetoothAdapter.startDiscovery();
+        String message = hasStartedDiscovery ? "successfully started discovery" : "failed to start discovery";
+        Log.d("DEBUG", "startBluetoothDiscovery: Started Discovery Status: " + message);
     }
 
     // Shows a dialog for the user to select a Bluetooth device from the discovered devices
     private void showDeviceSelectionDialog(final List<BluetoothDevice> devices) {
         List<String> deviceNames = new ArrayList<>();
         for (BluetoothDevice device : devices) {
-            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-
-                return;
-            }
             deviceNames.add(device.getName());
         }
 
@@ -147,12 +237,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // Connects to the selected Bluetooth device
     private void connectToDevice(BluetoothDevice device) {
+        Log.d("DEBUG", "connectToDevice: Attempting to Connect to Device:" + device.getName());
         try {
             UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); // Standard SerialPortService ID
-            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                return;
-            }
-            outputStream = device.createRfcommSocketToServiceRecord(uuid).getOutputStream();
+            BluetoothSocket btSocket = device.createRfcommSocketToServiceRecord(uuid);
+            btSocket.connect();
+            outputStream = btSocket.getOutputStream();
         } catch (IOException e) {
             System.out.println("fail on 'connect to device'" + " with exception " + e);
             e.printStackTrace();
@@ -239,23 +329,30 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onPause() {
         super.onPause();
-        sensorManager.unregisterListener(this);
+        if (sensorManager != null) {
+            sensorManager.unregisterListener(this);
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        sensorManager.registerListener(this, accelerometerSensor
-                , SensorManager.SENSOR_DELAY_NORMAL);
+        if (sensorManager != null) {
+            sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         // Unregister the discovery receiver when the activity is destroyed
-        unregisterReceiver(discoveryReceiver);
+        if (discoveryReceiver != null) {
+            unregisterReceiver(discoveryReceiver);
+        }
         // Unregister the sensor listener to prevent battery drain
-        sensorManager.unregisterListener(this);
+        if (sensorManager != null) {
+            sensorManager.unregisterListener(this);
+        }
         // Close the outputStream if it's not null to prevent memory leaks
         if (outputStream != null) {
             try {
@@ -264,6 +361,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 System.out.println("Failed at on destroy" + " with exception " + e);
                 e.printStackTrace();
             }
+        }
+    }
+
+    /**
+     * Once you call this method, you can be safe and assume all permissions & checks are met
+     * Feel free to ignore compiler red lines about these permissions
+     */
+    private void checkPermissions(){
+        int permission1 = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        int permission2 = ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN);
+        if (permission1 != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                    this,
+                    PERMISSIONS_STORAGE,
+                    REQUEST_ALL_PERMISSIONS_STORAGE
+            );
+        } else if (permission2 != PackageManager.PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(
+                    this,
+                    PERMISSIONS_LOCATION,
+                    REQUEST_ALL_PERMISSIONS_LOCATION
+            );
         }
     }
 }
