@@ -26,6 +26,8 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.Switch;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -139,8 +141,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BLUETOOTH);
         } else {
             // Start Bluetooth discovery process
-            startBluetoothDiscovery();
-            Log.d("BLUETOOTH", "Bluetooth is Already Turned On");
+            BluetoothButton();
         }
 
         // TODO: Work on Sensor Manager, DO NOT DELETE
@@ -152,6 +153,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 //            // Setup UI and button listeners for mouse control
 //            setupMouseControlButtons();
 //        }
+    }
+
+    public void BluetoothButton(){
+        Switch bluetoothSwitch = findViewById(R.id.switch1); // Assuming you have a button with id left in your layout
+        bluetoothSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    startBluetoothDiscovery();
+                    Log.d("BLUETOOTH", "Bluetooth is Already Turned On");
+                } else {
+                    onDestroy();
+                    Log.d("BLUETOOTH", "Bluetooth is turned off");
+                }
+            }
+        });
     }
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -239,7 +255,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void connectToDevice(BluetoothDevice device) {
         Log.d("DEBUG", "connectToDevice: Attempting to Connect to Device:" + device.getName());
         try {
-            UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); // Standard SerialPortService ID
+            UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb"); // Standard SerialPortService ID
             BluetoothSocket btSocket = device.createRfcommSocketToServiceRecord(uuid);
             btSocket.connect();
             outputStream = btSocket.getOutputStream();
