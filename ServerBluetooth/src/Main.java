@@ -1,11 +1,10 @@
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.UUID;
-
+import javax.bluetooth.*;
 import javax.microedition.io.Connector;
 import javax.microedition.io.StreamConnection;
 import javax.microedition.io.StreamConnectionNotifier;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class Main {
     int[] name = new int[4];
@@ -26,12 +25,19 @@ Once connected, call close()
 Resources:
 Bluetooth Socket*/
     public static void main(String[] args) {
-        try {// Create a UUID for SPP (Serial Port Profile)
-            UUID uuid = new UUID("00001101-0000-1000-8000-00805F9B34FB", false);
+        try {
+            // Create a server UUID for SPP (Serial Port Profile)
+            UUID uuid = new UUID("0000110100001000800000805F9B34FB", false);
+
+            // Start the server
+            LocalDevice localDevice = LocalDevice.getLocalDevice();
+            localDevice.setDiscoverable(DiscoveryAgent.GIAC);
+
+            // Create server URL
+            String url = "btspp://localhost:" + uuid + ";name=SampleServer";
 
             // Create a server socket
-            StreamConnectionNotifier notifier = (StreamConnectionNotifier) Connector
-                    .open("btspp://localhost:" + uuid + ";name=SampleServer");
+            StreamConnectionNotifier notifier = (StreamConnectionNotifier) Connector.open(url);
 
             System.out.println("Server started. Waiting for client connection...");
 
@@ -47,6 +53,7 @@ Bluetooth Socket*/
             // Handle communication
             byte[] buffer = new byte[1024];
             int bytes;
+
             while ((bytes = inputStream.read(buffer)) != -1) {
                 String receivedMessage = new String(buffer, 0, bytes);
                 System.out.println("Received: " + receivedMessage);
@@ -62,8 +69,7 @@ Bluetooth Socket*/
             outputStream.close();
             connection.close();
             notifier.close();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-}
+    }}
