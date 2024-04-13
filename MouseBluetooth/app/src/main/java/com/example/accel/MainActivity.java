@@ -56,6 +56,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float last_x, last_y;
 
     int REQUEST_ENABLE_BLUETOOTH = 1;
+
+
     int REQUEST_ALL_PERMISSIONS_STORAGE = 2;
     int REQUEST_ALL_PERMISSIONS_LOCATION = 3;
 
@@ -305,7 +307,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     // Sends mouse click commands to the connected device
     private void sendMouseClick(int button) {
         if (outputStream != null) {
-            String clickCommand = "C" + button + "\n";
+            String clickCommand = "C," + button + "\n";
             try {
                 outputStream.write(clickCommand.getBytes());
             } catch (IOException e) {
@@ -316,6 +318,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     public class MousePackage{
+        private final float THRESHOLD = .0001F;
         private final float INCH_PER_METER = 39.3701F;
         private int DPI;
         private long nanoStart,nanoEnd;
@@ -333,6 +336,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //TODO: look at this again for accuracy
         //TODO: Calculate answer in one pass
         public double[] getMouseDistance(float xAcceleration, float yAcceleration, long currTime){
+
             nanoStart = nanoEnd;
             nanoEnd = currTime;
             long dt = nanoEnd-nanoStart;
@@ -348,7 +352,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             previousAcceleration[0] = xAcceleration;
             previousAcceleration[1] =  yAcceleration;
 
-            return new double[]{currentPositionX,currentPositionY};
+            return new double[]{
+                    (THRESHOLD > Math.abs(currentPositionX))? 0:currentPositionX,
+                    (THRESHOLD > Math.abs(currentPositionY))? 0:currentPositionY
+            };
         }
 
     }
@@ -372,7 +379,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 //        float deltaY = y - last_y;
 //        int scaledX = (int) (deltaX * 10);
 //        int scaledY = (int) (deltaY * 10);
-        String moveCommand = "M" + x + "," + y + "\n";
+        String moveCommand = "M," + x + "," + y + "\n";
         try {
             outputStream.write(moveCommand.getBytes());
         } catch (IOException e) {

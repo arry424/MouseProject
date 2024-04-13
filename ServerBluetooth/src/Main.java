@@ -1,3 +1,5 @@
+import ServerMouse.BluetoothMouse;
+
 import javax.bluetooth.*;
 import javax.microedition.io.Connector;
 import javax.microedition.io.StreamConnection;
@@ -5,6 +7,7 @@ import javax.microedition.io.StreamConnectionNotifier;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.StringTokenizer;
 
 public class Main {
     /*
@@ -24,6 +27,7 @@ Resources:
 Bluetooth Socket*/
     public static void main(String[] args) {
         try {
+            BluetoothMouse mouse = new BluetoothMouse();
             // Create a server UUID for SPP (Serial Port Profile)
             UUID uuid = new UUID("0000110100001000800000805F9B34FB", false);
 
@@ -57,7 +61,8 @@ Bluetooth Socket*/
                 System.out.println("Received: " + receivedMessage);
 
                 // Process received message here
-                
+                mouse.processMouseEvent(receivedMessage);
+
                 // Example: Echo back the message to the client
                 outputStream.write(receivedMessage.getBytes());
             }
