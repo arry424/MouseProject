@@ -7,8 +7,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 public class Main {
-    int[] name = new int[4];
-
     /*
 
 Create Server
@@ -59,7 +57,7 @@ Bluetooth Socket*/
                 System.out.println("Received: " + receivedMessage);
 
                 // Process received message here
-
+                
                 // Example: Echo back the message to the client
                 outputStream.write(receivedMessage.getBytes());
             }

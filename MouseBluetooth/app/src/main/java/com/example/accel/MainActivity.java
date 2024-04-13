@@ -45,12 +45,14 @@ import java.util.UUID;
 @RequiresApi(api = Build.VERSION_CODES.S)
 public class MainActivity extends AppCompatActivity implements SensorEventListener, ActivityCompat.OnRequestPermissionsResultCallback {
 
+    private MousePackage mouse;
     BluetoothManager bluetoothManager;
     BluetoothAdapter bluetoothAdapter;
     private List<BluetoothDevice> discoveredDevices = new ArrayList<>();
     private OutputStream outputStream = null;
     private SensorManager sensorManager;
     private Sensor accelerometerSensor;
+    private Sensor distanceSensor;
     private float last_x, last_y;
 
     int REQUEST_ENABLE_BLUETOOTH = 1;
@@ -146,13 +148,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // TODO: Work on Sensor Manager, DO NOT DELETE
         // Initialize sensor manager and accelerometer sensor
-//        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-//        if (sensorManager != null) {
-//            accelerometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-//            sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
-//            // Setup UI and button listeners for mouse control
-//            setupMouseControlButtons();
-//        }
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        if (sensorManager != null) {
+           accelerometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+           sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
+
+            // Setup UI and button listeners for mouse control
+           setupMouseControlButtons();
+        }
+        mouse = new MousePackage(800);
     }
 
     public void BluetoothButton(){
@@ -287,9 +291,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             rightButton.setOnTouchListener((v, event) -> {
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
                     System.out.println("RIGHT");
-                    sendMouseClick(2); // Right mouse button downY
+                    sendMouseClick(3); // Right mouse button downY
                 } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                    sendMouseClick(0); // Right mouse button up
+                    sendMouseClick(2); // Right mouse button up
                 }
                 return true;
             });
@@ -311,24 +315,64 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    public class MousePackage{
+        private final float INCH_PER_METER = 39.3701F;
+        private int DPI;
+        private long nanoStart,nanoEnd;
+        private float[] previousAcceleration;
+        private double[] previousVelocity;
+
+        //TODO: Add mouse settings
+        public MousePackage(int dpi) {
+            previousAcceleration = new float[]{0, 0};
+            previousVelocity = new double[]{0, 0};
+            nanoEnd = System.nanoTime();
+            DPI = dpi;
+        }
+        //TODO: Integrate with DPI
+        //TODO: look at this again for accuracy
+        //TODO: Calculate answer in one pass
+        public double[] getMouseDistance(float xAcceleration, float yAcceleration, long currTime){
+            nanoStart = nanoEnd;
+            nanoEnd = currTime;
+            long dt = nanoEnd-nanoStart;
+
+            double currentVelocityX = (dt * ((previousAcceleration[0]+xAcceleration)/2))/1000000000.0;
+            double currentVelocityY = (dt * ((previousAcceleration[1]+yAcceleration)/2))/1000000000.0;
+
+            double currentPositionX = (dt * ((previousVelocity[0]+currentVelocityX)/2.0))/1000000000.0;
+            double currentPositionY = (dt * ((previousVelocity[1]+currentVelocityY)/2.0))/1000000000.0;
+
+            previousVelocity[0] = (currentVelocityX*1000)/1000.0;
+            previousVelocity[1] = (currentVelocityY*1000)/1000.0;
+            previousAcceleration[0] = xAcceleration;
+            previousAcceleration[1] =  yAcceleration;
+
+            return new double[]{currentPositionX,currentPositionY};
+        }
+
+    }
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER && outputStream != null) {
+
+        if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION && outputStream != null) {
             float x = event.values[0];
             float y = event.values[1];
-            sendMouseMove(x, y);
+            double[] sendData = mouse.getMouseDistance(x, y, System.nanoTime());
+            sendMouseMove(sendData[0], sendData[1]);
             last_x = x;
             last_y = y;
         }
+
     }
 
     // Sends mouse move commands based on accelerometer data
-    private void sendMouseMove(float x, float y) {
-        float deltaX = x - last_x;
-        float deltaY = y - last_y;
-        int scaledX = (int) (deltaX * 10);
-        int scaledY = (int) (deltaY * 10);
-        String moveCommand = "M" + scaledX + "," + scaledY + "\n";
+    private void sendMouseMove(double x, double y) {
+//        float deltaX = x - last_x;
+//        float deltaY = y - last_y;
+//        int scaledX = (int) (deltaX * 10);
+//        int scaledY = (int) (deltaY * 10);
+        String moveCommand = "M" + x + "," + y + "\n";
         try {
             outputStream.write(moveCommand.getBytes());
         } catch (IOException e) {
