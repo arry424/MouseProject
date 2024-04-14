@@ -388,7 +388,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
         private double getAxisDistance2(float acceleration, int MASK, long dt) {
-            if (THRESHOLD > acceleration) {
+            if (THRESHOLD > Math.abs(acceleration)) {
                 previousAcceleration[MASK] = 0;
                 return 0;
             }
