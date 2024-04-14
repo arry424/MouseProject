@@ -431,10 +431,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 //        float deltaY = y - last_y;
 //        int scaledX = (int) (deltaX * 10);
 //        int scaledY = (int) (deltaY * 10);
+        x = -1*x;
+        y = -1*y;
         String moveCommand = "M," + x + "," + y + "\n";
         try {
             if(!(x == 0 && y==0))
-            outputStream.write(moveCommand.getBytes());
+                outputStream.write(moveCommand.getBytes());
         } catch (IOException e) {
             System.out.println("Failed at mouse move" + " with exception " + e);
             e.printStackTrace();
