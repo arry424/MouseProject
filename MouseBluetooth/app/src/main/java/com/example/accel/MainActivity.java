@@ -312,7 +312,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     public class MousePackage{
-        private final float THRESHOLD = .0001F;
+        private final float VELOCITY_THRESHOLD = .0001F; //correct
+        private final float THRESHOLD = .001F;
         private final float INCH_PER_METER = 39.3701F;
         private int DPI;
         private long nanoStart,nanoEnd;
@@ -321,6 +322,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         private double[] velocity;
         private double[] dV_previous;
 
+        private int[] ignoreEvents;
+        private final int NUM_IGNORE = 3;
+
+        private float accelCount = 0;
+        private float[] velocityError;
+
         //TODO: Add mouse settings
         public MousePackage(int dpi) {
             previousAcceleration = new float[]{0, 0};
@@ -328,6 +335,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             dV_previous = new double[]{0, 0};
             nanoEnd = System.nanoTime();
             DPI = dpi;
+            ignoreEvents = new int[]{0,0};
+            velocityError = new float[]{0,0};
         }
         //TODO: Integrate with DPI
         //TODO: look at this again for accuracy
@@ -337,24 +346,43 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             nanoStart = nanoEnd;
             nanoEnd = currTime;
             long dt = nanoEnd-nanoStart;
+            accelCount += xAcceleration;
 
-            double dV_currentX = (dt * ((previousAcceleration[0]+xAcceleration)/2))/1000000000.0;
-            double dV_currentY = (dt * ((previousAcceleration[1]+yAcceleration)/2))/1000000000.0;
-            double currentPositionX = (dt * velocity[0])/1000000000.0 + (dt * ((dV_previous[0]+dV_currentX)/2.0))/1000000000.0;
-            double currentPositionY = (dt * velocity[1])/1000000000.0 + (dt * ((dV_previous[1]+dV_currentY)/2.0))/1000000000.0;
+            Log.d("count of accel", ""+(accelCount));
+            return new double[] {getAxisDistance(xAcceleration, 0, dt), getAxisDistance(yAcceleration,1,dt)};
+        }
+        private double getAxisDistance(float genAccel, int MASK, long dt){
+            velocityError[MASK] += genAccel;
+            if(ignoreEvents[MASK] > 0){
+                ignoreEvents[MASK]--;
+                previousAcceleration[MASK] = genAccel;
+                return 0;
+            }
+            if(!(previousAcceleration[MASK] < 0 && genAccel < 0) ^ !(previousAcceleration[MASK] > 0 && genAccel>0)){
+                ignoreEvents[MASK] = NUM_IGNORE-1;
+                velocity[MASK] = 0;
+                velocityError[MASK] = 0;
+                previousAcceleration[MASK] = 0;
 
-            dV_previous[0] = (dV_currentX*1000)/1000.0;
-            dV_previous[1] = (dV_currentY*1000)/1000.0;
-            velocity[0] += dV_currentX;
-            velocity[1] += dV_currentY;
+                return 0;
+            }
 
-            previousAcceleration[0] = xAcceleration;
-            previousAcceleration[1] =  yAcceleration;
 
-            return new double[] {
-                    (THRESHOLD > Math.abs(currentPositionX))? 0: currentPositionX,
-                    (THRESHOLD > Math.abs(currentPositionY))? 0: currentPositionY
-            };
+            Log.d("dA", "x " + genAccel);
+
+            double dV_currentGen = (dt * ((previousAcceleration[MASK]+genAccel)/2))/1000000000.0;
+            dV_currentGen = (VELOCITY_THRESHOLD > Math.abs(dV_currentGen))? 0: dV_currentGen;
+
+            Log.d("dV", "x " + dV_currentGen);
+            double changeInPositionGen = (dt * velocity[MASK])/1000000000.0 + (dt * ((dV_previous[MASK]+dV_currentGen)/2.0))/1000000000.0;
+
+            dV_previous[MASK] = (dV_currentGen*1000)/1000.0;
+            velocity[MASK] += dV_previous[MASK];
+            previousAcceleration[MASK] = genAccel;
+
+
+            return (THRESHOLD > Math.abs(changeInPositionGen))? 0: changeInPositionGen;
+
         }
 
     }

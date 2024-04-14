@@ -13,6 +13,8 @@ public class BluetoothMouse {
     final float INCHES_PER_METER = 39.3701F;
     int x;
     int y;
+    int screenWidth;
+    int screenHeight;
     public BluetoothMouse(){
         tools = Toolkit.getDefaultToolkit();
         setDPIs();
@@ -45,24 +47,31 @@ public class BluetoothMouse {
                 mouseRelease(x);
         }
     }
-
+//TODO it is possible for the mouse to get stuck in one position
     private void calculateMousePath(double xPos, double yPos){
-        x = (int)(dpiX * (INCHES_PER_METER*xPos) + x);
-        y = y - (int)(dpiY * (INCHES_PER_METER*yPos));
+        x = (int)(100*(INCHES_PER_METER*xPos) + x);
+        y = y - (int)(100*(INCHES_PER_METER*yPos));
         // Get the screen resolution in pixels
+
+        x = (x > screenWidth)? screenWidth: x;
+        x = (x < 0)? 0: x;
+        y = (y > screenHeight)? screenHeight: y;
+        y = (y < 0)? 0: y;
+
         mouseMove(x,y);
     }
 
     private void setDPIs(){
-        double screenWidth = tools.getScreenSize().getWidth();
-        double screenHeight = tools.getScreenSize().getHeight();
+        screenWidth = (int) tools.getScreenSize().getWidth();
+        screenHeight = (int) tools.getScreenSize().getHeight();
 
         // Get the screen resolution in DPI (dots per inch)
         double screenDPI = tools.getScreenResolution();
+        System.out.println("Screen dpi " + screenDPI);
 
         // Calculate the DPI for both width and height
-        dpiX = screenWidth / screenDPI;
-        dpiY = screenHeight / screenDPI;
+        //dpiX = screenWidth / screenDPI;
+       // dpiY = screenHeight / screenDPI;
     }
 
     private void mouseMove(int xPixel, int yPixel){
