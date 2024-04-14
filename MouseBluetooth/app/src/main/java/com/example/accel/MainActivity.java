@@ -324,6 +324,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //TODO: Add mouse settings
         public MousePackage(int dpi) {
             previousAcceleration = new float[]{0, 0};
+            velocity = new double[]{0,0};
             dV_previous = new double[]{0, 0};
             nanoEnd = System.nanoTime();
             DPI = dpi;
