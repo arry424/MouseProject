@@ -35,7 +35,7 @@ Bluetooth Socket*/
             LocalDevice localDevice = LocalDevice.getLocalDevice();
             localDevice.setDiscoverable(DiscoveryAgent.GIAC);
 
-            // Create server URL
+            // Create server URLgit cd
             String url = "btspp://localhost:" + uuid + ";name=SampleServer";
 
             // Create a server socket

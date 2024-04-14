@@ -355,7 +355,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             velocityError[MASK] += genAccel;
             if(ignoreEvents[MASK] > 0){
                 ignoreEvents[MASK]--;
-                previousAcceleration[MASK] = genAccel;
+                //previousAcceleration[MASK] = genAccel;
                 return 0;
             }
             if(!(previousAcceleration[MASK] < 0 && genAccel < 0) ^ !(previousAcceleration[MASK] > 0 && genAccel>0)){

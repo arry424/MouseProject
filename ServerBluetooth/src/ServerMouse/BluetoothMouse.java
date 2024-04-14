@@ -49,8 +49,8 @@ public class BluetoothMouse {
     }
 //TODO it is possible for the mouse to get stuck in one position
     private void calculateMousePath(double xPos, double yPos){
-        x = (int)(100*(INCHES_PER_METER*xPos) + x);
-        y = y - (int)(100*(INCHES_PER_METER*yPos));
+        x = (int)(300*(INCHES_PER_METER*xPos) + x);
+        y = y - (int)(300*(INCHES_PER_METER*yPos));
         // Get the screen resolution in pixels
 
         x = (x > screenWidth)? screenWidth: x;
