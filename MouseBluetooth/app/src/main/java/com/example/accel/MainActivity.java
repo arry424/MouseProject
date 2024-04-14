@@ -351,14 +351,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 //            return new double[] {getAxisDistance2(xAcceleration, 0, dt), getAxisDistance2(yAcceleration,1,dt)};
 
         }
-        private double getAxisDistance(float genAccel, int MASK, long dt){
-            velocityError[MASK] += genAccel;
+        private double getAxisDistance(float currAccel, int MASK, long dt){
+            velocityError[MASK] += currAccel;
             if(ignoreEvents[MASK] > 0){
                 ignoreEvents[MASK]--;
                 //previousAcceleration[MASK] = genAccel;
                 return 0;
             }
-            if(!(previousAcceleration[MASK] < 0 && genAccel < 0) ^ !(previousAcceleration[MASK] > 0 && genAccel>0)){
+            if(!(previousAcceleration[MASK] < 0 && currAccel < 0) ^ !(previousAcceleration[MASK] > 0 && currAccel>0)){
                 ignoreEvents[MASK] = NUM_IGNORE-1;
                 velocity[MASK] = 0;
                 velocityError[MASK] = 0;
@@ -368,21 +368,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
 
 
-            Log.d("dA", "x " + genAccel);
+            Log.d("dA", "x " + currAccel);
 
-            double dV_currentGen = (dt * ((previousAcceleration[MASK]+genAccel)/2))/1000000000.0;
+            double dV_curr = (dt * ((previousAcceleration[MASK]+currAccel)/2))/1000000000.0;
 //            dV_currentGen = (VELOCITY_THRESHOLD > Math.abs(dV_currentGen))? 0: dV_currentGen;
             velocity[MASK] += dV_previous[MASK];
             if (.01 > Math.abs(velocity[MASK])) {
                 velocity[MASK] = 0;
             }
 
-            Log.d("dV", "x " + dV_currentGen);
+            Log.d("dV", "x " + dV_curr);
             double changeInPositionGen = velocity[MASK] * dt/1000000000.0;
 
-            dV_previous[MASK] = (dV_currentGen*1000)/1000.0;
+            dV_previous[MASK] = (dV_curr*1000)/1000.0;
 //            velocity[MASK] += dV_previous[MASK];
-            previousAcceleration[MASK] = genAccel;
+            previousAcceleration[MASK] = currAccel;
 
 
             return (THRESHOLD > Math.abs(changeInPositionGen))? 0: changeInPositionGen;
