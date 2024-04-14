@@ -375,7 +375,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             double dV_currentGen = (dt * ((previousAcceleration[MASK]+genAccel)/2))/1000000000.0;
 //            dV_currentGen = (VELOCITY_THRESHOLD > Math.abs(dV_currentGen))? 0: dV_currentGen;
             velocity[MASK] += dV_previous[MASK];
-            if (.1 > Math.abs(velocity[MASK])) {
+            if (.01 > Math.abs(velocity[MASK])) {
                 velocity[MASK] = 0;
             }
 
