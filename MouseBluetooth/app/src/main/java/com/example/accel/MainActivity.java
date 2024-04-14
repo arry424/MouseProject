@@ -1,7 +1,6 @@
 package com.example.accel;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
@@ -18,18 +17,14 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.Log;
 import android.view.MotionEvent;
-import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
@@ -39,7 +34,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @RequiresApi(api = Build.VERSION_CODES.S)
@@ -323,38 +317,42 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         private int DPI;
         private long nanoStart,nanoEnd;
         private float[] previousAcceleration;
-        private double[] previousVelocity;
+
+        private double[] velocity;
+        private double[] dV_previous;
 
         //TODO: Add mouse settings
         public MousePackage(int dpi) {
             previousAcceleration = new float[]{0, 0};
-            previousVelocity = new double[]{0, 0};
+            dV_previous = new double[]{0, 0};
             nanoEnd = System.nanoTime();
             DPI = dpi;
         }
         //TODO: Integrate with DPI
         //TODO: look at this again for accuracy
         //TODO: Calculate answer in one pass
-        public double[] getMouseDistance(float xAcceleration, float yAcceleration, long currTime){
+        public double[] getMouseDistance(float xAcceleration, float yAcceleration, long currTime) {
 
             nanoStart = nanoEnd;
             nanoEnd = currTime;
             long dt = nanoEnd-nanoStart;
 
-            double currentVelocityX = (dt * ((previousAcceleration[0]+xAcceleration)/2))/1000000000.0;
-            double currentVelocityY = (dt * ((previousAcceleration[1]+yAcceleration)/2))/1000000000.0;
+            double dV_currentX = (dt * ((previousAcceleration[0]+xAcceleration)/2))/1000000000.0;
+            double dV_currentY = (dt * ((previousAcceleration[1]+yAcceleration)/2))/1000000000.0;
+            double currentPositionX = (dt * velocity[0])/1000000000.0 + (dt * ((dV_previous[0]+dV_currentX)/2.0))/1000000000.0;
+            double currentPositionY = (dt * velocity[1])/1000000000.0 + (dt * ((dV_previous[1]+dV_currentY)/2.0))/1000000000.0;
 
-            double currentPositionX = (dt * ((previousVelocity[0]+currentVelocityX)/2.0))/1000000000.0;
-            double currentPositionY = (dt * ((previousVelocity[1]+currentVelocityY)/2.0))/1000000000.0;
+            dV_previous[0] = (dV_currentX*1000)/1000.0;
+            dV_previous[1] = (dV_currentY*1000)/1000.0;
+            velocity[0] += dV_currentX;
+            velocity[1] += dV_currentY;
 
-            previousVelocity[0] = (currentVelocityX*1000)/1000.0;
-            previousVelocity[1] = (currentVelocityY*1000)/1000.0;
             previousAcceleration[0] = xAcceleration;
             previousAcceleration[1] =  yAcceleration;
 
-            return new double[]{
-                    (THRESHOLD > Math.abs(currentPositionX))? 0:currentPositionX,
-                    (THRESHOLD > Math.abs(currentPositionY))? 0:currentPositionY
+            return new double[] {
+                    (THRESHOLD > Math.abs(currentPositionX))? 0: currentPositionX,
+                    (THRESHOLD > Math.abs(currentPositionY))? 0: currentPositionY
             };
         }
 
