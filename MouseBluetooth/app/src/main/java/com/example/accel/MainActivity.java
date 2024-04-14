@@ -323,7 +323,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         private double[] dV_previous;
 
         private int[] ignoreEvents;
-        private final int NUM_IGNORE = 3;
+        private final int NUM_IGNORE = 2;
 
         private float accelCount = 0;
         private float[] velocityError;
@@ -388,10 +388,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
         private double getAxisDistance2(float acceleration, int MASK, long dt) {
+            if(ignoreEvents[MASK] > 0) {
+                ignoreEvents[MASK]--;
+                previousAcceleration[MASK] = acceleration;
+                return 0;
+            }
+
             if (THRESHOLD > Math.abs(acceleration)) {
                 previousAcceleration[MASK] = 0;
                 return 0;
             }
+
+            if(!(previousAcceleration[MASK] < 0 && acceleration < 0) ^ !(previousAcceleration[MASK] > 0 && acceleration>0)){
+                ignoreEvents[MASK] = NUM_IGNORE-1;
+                previousAcceleration[MASK] = 0;
+                return 0;
+            }
+
             double avgAcceleration = (previousAcceleration[MASK] + acceleration)/2.0;
             previousAcceleration[MASK] = acceleration;
 
