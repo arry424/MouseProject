@@ -349,7 +349,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             accelCount += xAcceleration;
 
             Log.d("count of accel", ""+(accelCount));
-            return new double[] {getAxisDistance(xAcceleration, 0, dt), getAxisDistance(yAcceleration,1,dt)};
+//            return new double[] {getAxisDistance(xAcceleration, 0, dt), getAxisDistance(yAcceleration,1,dt)};
+            return new double[] {getAxisDistance2(xAcceleration, 0, dt), getAxisDistance2(yAcceleration,1,dt)};
+
         }
         private double getAxisDistance(float genAccel, int MASK, long dt){
             velocityError[MASK] += genAccel;
@@ -383,6 +385,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
             return (THRESHOLD > Math.abs(changeInPositionGen))? 0: changeInPositionGen;
 
+        }
+
+        private double getAxisDistance2(float acceleration, int MASK, long dt) {
+            if (THRESHOLD > acceleration) {
+                previousAcceleration[MASK] = 0;
+                return 0;
+            }
+            double avgAcceleration = (previousAcceleration[MASK] + acceleration)/2.0;
+            previousAcceleration[MASK] = acceleration;
+
+            return 1.0/6.0 * avgAcceleration*avgAcceleration*avgAcceleration * dt/1000000000.0;
         }
 
     }
