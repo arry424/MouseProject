@@ -349,8 +349,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             accelCount += xAcceleration;
 
             Log.d("count of accel", ""+(accelCount));
-//            return new double[] {getAxisDistance(xAcceleration, 0, dt), getAxisDistance(yAcceleration,1,dt)};
-            return new double[] {getAxisDistance2(xAcceleration, 0, dt), getAxisDistance2(yAcceleration,1,dt)};
+            return new double[] {getAxisDistance(xAcceleration, 0, dt), getAxisDistance(yAcceleration,1,dt)};
+//            return new double[] {getAxisDistance2(xAcceleration, 0, dt), getAxisDistance2(yAcceleration,1,dt)};
 
         }
         private double getAxisDistance(float genAccel, int MASK, long dt){
@@ -373,13 +373,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Log.d("dA", "x " + genAccel);
 
             double dV_currentGen = (dt * ((previousAcceleration[MASK]+genAccel)/2))/1000000000.0;
-            dV_currentGen = (VELOCITY_THRESHOLD > Math.abs(dV_currentGen))? 0: dV_currentGen;
+//            dV_currentGen = (VELOCITY_THRESHOLD > Math.abs(dV_currentGen))? 0: dV_currentGen;
+            velocity[MASK] += dV_previous[MASK];
+            if (.1 > Math.abs(velocity[MASK])) {
+                velocity[MASK] = 0;
+            }
 
             Log.d("dV", "x " + dV_currentGen);
-            double changeInPositionGen = (dt * velocity[MASK])/1000000000.0 + (dt * ((dV_previous[MASK]+dV_currentGen)/2.0))/1000000000.0;
+            double changeInPositionGen = velocity[MASK] * dt/1000000000.0;
 
             dV_previous[MASK] = (dV_currentGen*1000)/1000.0;
-            velocity[MASK] += dV_previous[MASK];
+//            velocity[MASK] += dV_previous[MASK];
             previousAcceleration[MASK] = genAccel;
 
 
