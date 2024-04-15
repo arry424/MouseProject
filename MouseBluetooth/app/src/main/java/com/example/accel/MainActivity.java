@@ -311,7 +311,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     public class MousePackage{
         private final float VELOCITY_THRESHOLD = .0001F; //correct
-        private final float THRESHOLD = .001F;
+        private final float THRESHOLD = .0005F;
         private final float INCH_PER_METER = 39.3701F;
         private int DPI;
         private long nanoStart,nanoEnd;
@@ -374,14 +374,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             double dV_curr = (dt * ((previousAcceleration[MASK]+currAccel)/2))/1000000000.0;
 
             velocity[MASK] += dV_previous[MASK];
-            if (.01 > Math.abs(velocity[MASK])) { //if the velocity is too low, ignore it
+            if (.005 > Math.abs(velocity[MASK])) { //if the velocity is too low, ignore it
                 velocity[MASK] = 0;
+               // dV_curr = 0;
             }
 
             Log.d("dV", "x " + dV_curr);
 
             //Finds the current change in position
-            double changeInPositionGen = velocity[MASK] * dt/1000000000.0;
+            double changeInPositionGen = dV_curr * dt/1000000000.0;
 
             //sets previous variables
             dV_previous[MASK] = (dV_curr*1000)/1000.0;
