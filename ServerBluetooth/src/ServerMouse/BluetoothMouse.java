@@ -15,6 +15,8 @@ public class BluetoothMouse {
     int y;
     int screenWidth;
     int screenHeight;
+    boolean leftPressed;
+    boolean rightPressed;
     public BluetoothMouse(){
         tools = Toolkit.getDefaultToolkit();
         setDPIs();
@@ -49,8 +51,10 @@ public class BluetoothMouse {
     }
 //TODO it is possible for the mouse to get stuck in one position
     private void calculateMousePath(double xPos, double yPos){
-        x = (int)(300*(INCHES_PER_METER*xPos) + x);
-        y = y - (int)(300*(INCHES_PER_METER*yPos));
+        if(!(leftPressed&&rightPressed)) {
+            x = (int) (300 * (INCHES_PER_METER * xPos) + x);
+            y = y - (int) (300 * (INCHES_PER_METER * yPos));
+        }
         // Get the screen resolution in pixels
 
         x = (x > screenWidth)? screenWidth: x;
@@ -58,7 +62,7 @@ public class BluetoothMouse {
         y = (y > screenHeight)? screenHeight: y;
         y = (y < 0)? 0: y;
 
-        mouseMove(x,y);
+            mouseMove(x,y);
     }
 
     private void setDPIs(){
@@ -81,17 +85,26 @@ public class BluetoothMouse {
 
     private void mouseClick(int x){
         //if 1 or 3, left vs right
-        if(x == 1)
+        if(x == 1) {
             robot.mousePress(BUTTON1_DOWN_MASK);
-        else if(x == 3)
+            leftPressed = true;
+        }
+        else if(x == 3) {
             robot.mousePress(BUTTON3_DOWN_MASK);
+            rightPressed = true;
+
+        }
     }
 
     private void mouseRelease(int x){
         //if 0 or 2, left vs right
-        if(x == 0)
+        if(x == 0) {
             robot.mouseRelease(BUTTON1_DOWN_MASK);
-        else if(x == 2)
+            leftPressed = false;
+        }
+        else if(x == 2) {
             robot.mouseRelease(BUTTON3_DOWN_MASK);
+            rightPressed = false;
+        }
     }
 }
