@@ -341,23 +341,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //TODO: Calculate answer in one pass
         public double[] getMouseDistance(float xAcceleration, float yAcceleration, long currTime) {
 
-            nanoStart = nanoEnd;
+            nanoStart = nanoEnd; //gets the change in time for the integrals
             nanoEnd = currTime;
             long dt = nanoEnd-nanoStart;
             accelCount += xAcceleration;
 
             Log.d("count of accel", ""+(accelCount));
             return new double[] {getAxisDistance(xAcceleration, 0, dt), getAxisDistance(yAcceleration,1,dt)};
-//            return new double[] {getAxisDistance2(xAcceleration, 0, dt), getAxisDistance2(yAcceleration,1,dt)};
 
         }
         private double getAxisDistance(float currAccel, int MASK, long dt){
             velocityError[MASK] += currAccel;
-            if(ignoreEvents[MASK] > 0){
+            if(ignoreEvents[MASK] > 0){ //if the mouse has switched from speeding up to slowing down, and needs ignore events. Used to counteract the negative accel
                 ignoreEvents[MASK]--;
-                //previousAcceleration[MASK] = genAccel;
+
                 return 0;
             }
+            //If the mouse switched from speeding up to slowing down, makes it 0 velocity so that
+            //the negative acceleration won't make the displacement the other way
             if(!(previousAcceleration[MASK] < 0 && currAccel < 0) ^ !(previousAcceleration[MASK] > 0 && currAccel>0)){
                 ignoreEvents[MASK] = NUM_IGNORE-1;
                 velocity[MASK] = 0;
@@ -367,21 +368,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 return 0;
             }
 
-
             Log.d("dA", "x " + currAccel);
 
+            //Finds the current change in velocity using a midpoint Reinman Sum
             double dV_curr = (dt * ((previousAcceleration[MASK]+currAccel)/2))/1000000000.0;
-//            dV_currentGen = (VELOCITY_THRESHOLD > Math.abs(dV_currentGen))? 0: dV_currentGen;
+
             velocity[MASK] += dV_previous[MASK];
-            if (.01 > Math.abs(velocity[MASK])) {
+            if (.01 > Math.abs(velocity[MASK])) { //if the velocity is too low, ignore it
                 velocity[MASK] = 0;
             }
 
             Log.d("dV", "x " + dV_curr);
+
+            //Finds the current change in position
             double changeInPositionGen = velocity[MASK] * dt/1000000000.0;
 
+            //sets previous variables
             dV_previous[MASK] = (dV_curr*1000)/1000.0;
-//            velocity[MASK] += dV_previous[MASK];
             previousAcceleration[MASK] = currAccel;
 
 
@@ -389,29 +392,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         }
 
-//        private double getAxisDistance2(float acceleration, int MASK, long dt) {
-//            if(ignoreEvents[MASK] > 0){
-//                ignoreEvents[MASK]--;
-//                return 0;
-//            }
-//
-//            if (THRESHOLD > Math.abs(acceleration)) {
-//                previousAcceleration[MASK] = 0;
-//                return 0;
-//            }
-//
-//            if(!(previousAcceleration[MASK] < 0 && acceleration < 0) ^ !(previousAcceleration[MASK] > 0 && acceleration>0)) {
-//                previousAcceleration[MASK] = 0;
-//                ignoreEvents[MASK]--;
-//                return 0;
-//            }
-//
-//            double avgAcceleration = (previousAcceleration[MASK] + acceleration)/2.0;
-//            previousAcceleration[MASK] = acceleration;
-//
-//            return 1.0/6.0 * avgAcceleration*avgAcceleration*avgAcceleration * dt/1000000000.0;
-//        }
-//
   }
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -429,10 +409,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // Sends mouse move commands based on accelerometer data
     private void sendMouseMove(double x, double y) {
-//        float deltaX = x - last_x;
-//        float deltaY = y - last_y;
-//        int scaledX = (int) (deltaX * 10);
-//        int scaledY = (int) (deltaY * 10);
+        //flips variables to correctly orient with the phone
         x = -1*x;
         y = -1*y;
         String moveCommand = "M," + x + "," + y + "\n";

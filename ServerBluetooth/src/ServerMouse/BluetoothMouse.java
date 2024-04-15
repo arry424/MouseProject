@@ -17,9 +17,10 @@ public class BluetoothMouse {
     int screenHeight;
     boolean leftPressed;
     boolean rightPressed;
+    
     public BluetoothMouse(){
         tools = Toolkit.getDefaultToolkit();
-        setDPIs();
+        setDimensions();
         try {
             robot = new Robot();
         } catch (AWTException e) {
@@ -49,7 +50,7 @@ public class BluetoothMouse {
                 mouseRelease(x);
         }
     }
-//TODO it is possible for the mouse to get stuck in one position
+
     private void calculateMousePath(double xPos, double yPos){
         if(!(leftPressed&&rightPressed)) {
             x = (int) (300 * (INCHES_PER_METER * xPos) + x);
@@ -65,17 +66,10 @@ public class BluetoothMouse {
             mouseMove(x,y);
     }
 
-    private void setDPIs(){
+    private void setDimensions(){
         screenWidth = (int) tools.getScreenSize().getWidth();
         screenHeight = (int) tools.getScreenSize().getHeight();
 
-        // Get the screen resolution in DPI (dots per inch)
-        double screenDPI = tools.getScreenResolution();
-        System.out.println("Screen dpi " + screenDPI);
-
-        // Calculate the DPI for both width and height
-        //dpiX = screenWidth / screenDPI;
-       // dpiY = screenHeight / screenDPI;
     }
 
     private void mouseMove(int xPixel, int yPixel){
