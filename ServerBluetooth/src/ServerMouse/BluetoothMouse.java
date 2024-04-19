@@ -53,8 +53,8 @@ public class BluetoothMouse {
 
     private void calculateMousePath(double xPos, double yPos){
         if(!(leftPressed&&rightPressed)) {
-            x = (int) (500 * (INCHES_PER_METER * xPos) + x);
-            y = y - (int) (500 * (INCHES_PER_METER * yPos));
+            x = (int) (800 * (INCHES_PER_METER * xPos) + x);
+            y = y - (int) (800 * (INCHES_PER_METER * yPos));
         }
         // Get the screen resolution in pixels
 
@@ -69,7 +69,8 @@ public class BluetoothMouse {
     private void setDimensions(){
         screenWidth = (int) tools.getScreenSize().getWidth();
         screenHeight = (int) tools.getScreenSize().getHeight();
-
+        double p = tools.getScreenResolution();
+        System.out.println(screenWidth + " " + screenHeight);
     }
 
     private void mouseMove(int xPixel, int yPixel){
